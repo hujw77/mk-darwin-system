@@ -27,7 +27,7 @@
 
   outputs = { self, nixpkgs, flake-utils, ... }@inputs:
     let
-      mkDarwiSystem = import ./lib/mkDarwinSystem.nix
+      mkDarwinSystem = import ./lib/mkDarwinSystem.nix
         (inputs // { mk-darwin-system = self; });
         m1 = import ./lib/m1.nix { inherit mkDarwiSystem flake-utils nixpkgs; };
         mkFunctor = f: nixpkgs.lib.setFunctionArgs f (nixpkgs.lib.functionArgs f);
@@ -52,7 +52,7 @@
       inherit templates;
       defaultTemplate = templates.minimal;
 
-      mkDarwiSystem = (mkFunctor mkDarwiSystem) // {
+      mkDarwinSystem = (mkFunctor mkDarwiSystem) // {
         m1 = m1.apply;
         lib = import ./lib { inherit nixpkgs; };
       };
