@@ -2,7 +2,7 @@
   description = "Create a nixFlakes + nix-darwin + home-manager system";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/21.11";
 
     nur.url = "github:nix-community/NUR";
 
@@ -25,7 +25,41 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs: {
-    mkDarwinSystem = args: import ./default.nix (inputs // args);
-  };
+  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
+    let
+      mkDarwiSystem = import ./lib/mkDarwinSystem.nix
+        (inputs // { mk-darwin-system = self; });
+        m1 = import ./lib/m1.nix { inherit mkDarwiSystem flake-utils nixpkgs; };
+        mkFunctor = f: nixpkgs.lib.setFunctionArgs f (nixpkgs.lib.functionArgs f);
+
+        templates = {
+          minimal = {
+            description = "mkDarwiSystem minimal example";
+            path = ./templates/minimal;
+          };
+
+          dev-envs = {
+            description = "mkDarwiSystem development environments example";
+            path = ./templates/dev-envs;
+          };
+
+          niv-managed-apps = {
+            description = "mkDarwiSystem with macos apps managed with niv";
+            path = ./templates/niv-managed-apps;
+          };
+        };
+    in {
+      inherit templates;
+      defaultTemplate = templates.minimal;
+
+      mkDarwiSystem = (mkFunctor mkDarwiSystem) // {
+        m1 = m1.apply;
+        lib = import ./lib { inherit nixpkgs; };
+      };
+
+      devShell.aarch64-darwin = let
+        pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+        intelPkgs = nixpkgs.legacyPackages.x86_64-darwin;
+      in pkgs.mkShell { packages = [ pkgs.nixfmt intelPkgs.niv ]; };
+    };
 }
